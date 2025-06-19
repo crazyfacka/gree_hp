@@ -7,11 +7,11 @@ BLOCK_SIZE = 16
 
 # Mode mapping
 MODE_MAPPING = {
-    1: "heat", 
-    2: "hot water",
-    3: "cool + hot water",
-    4: "heat + hot water",
-    5: "cool"
+    1: "Heat",
+    2: "Hot water",
+    3: "Cool + Hot water",
+    4: "Heat + Hot water",
+    5: "Cool"
 }
 
 MODE_REVERSE_MAPPING = {v: k for k, v in MODE_MAPPING.items()}
