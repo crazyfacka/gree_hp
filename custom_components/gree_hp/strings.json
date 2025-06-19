@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Gree Heat Pump Setup",
+        "description": "Enter your heat pump IP address",
+        "data": {
+          "host": "IP Address"
+        }
+      }
+    }
+  }
+}

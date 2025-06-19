@@ -1,0 +1,53 @@
+hid > some binary info
+
+# Settings
+
+Pow > 1 # Power
+Mod > 2 # Mode
+CoWatOutTemSet > 12 # Cold temperature setting
+HeWatOutTemSet > 40 # Hot temperature setting
+WatBoxTemSet > 50 # Shower water temperature setting
+TemUn > 0
+AllErr > 0
+TemRec > 0
+ColHtWter > 0
+HetHtWter > 1
+TemRecB > 0
+CoHomTemSet > 20
+HeHomTemSet > 20
+FastHtWter > 0
+Quiet > 0
+Emegcy > 0
+LefHom > 0
+SwDisFct > 0
+SvSt > 0
+VersatiSeries > 1
+RomHomTemExt > 0
+WatBoxExt > 1
+FocModSwh > 0
+Emegcy > 0
+HanFroSwh > 0
+WatSyExhSwh > 0
+BordTest > 0
+ColColetSwh > 0
+EndTemCotSwh > 0
+
+# Information
+
+AllInWatTemHi > 140
+AllInWatTemLo > 6
+AllOutWatTemHi > 140
+AllOutWatTemLo > 8
+HepOutWatTemHi > 70
+HepOutWatTemLo > 0
+WatBoxTemHi > 141
+WatBoxTemLo > 0
+RmoHomTemHi > 100
+RmoHomTemLo > 0
+WatBoxElcHeRunSta > 1
+SyAnFroRunSta > 0
+ElcHe1RunSta > 0
+ElcHe2RunSta > 0
+AnFrzzRunSta > 0
+TemUn > 0
+AllErr > 0

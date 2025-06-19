@@ -1,0 +1,10 @@
+{
+  "domain": "gree_hp",
+  "name": "Gree Heat Pump",
+  "config_flow": true,
+  "documentation": "https://github.com/user/gree_hp",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "requirements": ["pycryptodome"],
+  "version": "1.0.0"
+}
