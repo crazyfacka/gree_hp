@@ -4,10 +4,10 @@ This is a custom Home Assistant integration for Gree Heat Pump devices that use 
 
 ## Installation
 
-1. Copy the `gree_heat_pump` folder to your Home Assistant `custom_components` directory:
+1. Copy the `gree_hp` folder to your Home Assistant `custom_components` directory:
    ```
    custom_components/
-     gree_heat_pump/
+     gree_hp/
    ```
 
 2. Restart Home Assistant
