@@ -17,10 +17,10 @@ PLATFORMS = [Platform.SWITCH, Platform.NUMBER, Platform.SELECT]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Gree Heat Pump from a config entry."""
     host = entry.data[CONF_HOST]
-    
+
     # Create heat pump instance
     heat_pump = GreeHeatPump(host)
-    
+
     # Create data update coordinator
     coordinator = DataUpdateCoordinator(
         hass,

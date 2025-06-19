@@ -28,7 +28,7 @@ class GreeHeatPump:
             data = await self._get_status()
             self._data = data or {}
             return self._data
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-except
             _LOGGER.error("Failed to update heat pump data: %s", e)
             return self._data
 
@@ -36,14 +36,14 @@ class GreeHeatPump:
         """Get current status from heat pump."""
         try:
             loop = asyncio.get_event_loop()
-            
+
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.settimeout(5.0)
             sock.bind(('0.0.0.0', DEFAULT_PORT))
-            
+
             try:
                 cipher = AES.new(AES_KEY.encode('utf-8'), AES.MODE_ECB)
-                
+
                 # Step 1: Discovery
                 find_msg = {'t': 'scan'}
                 await loop.run_in_executor(None, self._send_msg, sock, find_msg)
@@ -77,7 +77,7 @@ class GreeHeatPump:
                 await loop.run_in_executor(None, self._send_msg, sock, status_msg)
                 response = await loop.run_in_executor(None, self._receive_msg, sock)
                 pack = self._parse_msg(response['pack'], device_cipher)
-                
+
                 # Convert list response to dict
                 if isinstance(pack.get('dat'), list):
                     cols = ['Pow', 'Mod', 'CoWatOutTemSet', 'HeWatOutTemSet', 'WatBoxTemSet']
@@ -86,13 +86,13 @@ class GreeHeatPump:
                         if i < len(pack['dat']):
                             dat_dict[col] = pack['dat'][i]
                     return dat_dict
-                
+
                 return pack.get('dat', {})
-                
+
             finally:
                 sock.close()
-                
-        except Exception as e:
+
+        except Exception as e: # pylint: disable=broad-except
             _LOGGER.error("Failed to get status: %s", e)
             return None
 
@@ -107,7 +107,7 @@ class GreeHeatPump:
             'hot': 'HeWatOutTemSet',
             'shower': 'WatBoxTemSet'
         }
-        
+
         if temp_type not in temp_mapping:
             _LOGGER.error("Invalid temperature type: %s", temp_type)
             return False
@@ -122,14 +122,14 @@ class GreeHeatPump:
         """Send command to heat pump."""
         try:
             loop = asyncio.get_event_loop()
-            
+
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.settimeout(5.0)
             sock.bind(('0.0.0.0', DEFAULT_PORT))
-            
+
             try:
                 cipher = AES.new(AES_KEY.encode('utf-8'), AES.MODE_ECB)
-                
+
                 # Step 1: Discovery
                 find_msg = {'t': 'scan'}
                 await loop.run_in_executor(None, self._send_msg, sock, find_msg)
@@ -162,14 +162,14 @@ class GreeHeatPump:
                 }
                 await loop.run_in_executor(None, self._send_msg, sock, cmd_msg)
                 response = await loop.run_in_executor(None, self._receive_msg, sock)
-                
+
                 _LOGGER.debug("Command %s=%s sent successfully", param, value)
                 return True
-                
+
             finally:
                 sock.close()
-                
-        except Exception as e:
+
+        except Exception as e: # pylint: disable=broad-except
             _LOGGER.error("Failed to send command %s=%s: %s", param, value, e)
             return False
 
@@ -192,7 +192,7 @@ class GreeHeatPump:
 
     def _receive_msg(self, sock) -> Dict[str, Any]:
         """Receive message from device."""
-        data, addr = sock.recvfrom(1024)
+        data = sock.recvfrom(1024)[0]
         return json.loads(data)
 
     @property

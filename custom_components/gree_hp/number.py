@@ -22,13 +22,25 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
     heat_pump = hass.data[DOMAIN][config_entry.entry_id]["heat_pump"]
     host = config_entry.data[CONF_HOST]
-    
+
     entities = [
-        GreeHeatPumpTemperature(coordinator, heat_pump, host, "CoWatOutTemSet", "Cold Water Temperature", 5, 30),
-        GreeHeatPumpTemperature(coordinator, heat_pump, host, "HeWatOutTemSet", "Hot Water Temperature", 30, 60),
-        GreeHeatPumpTemperature(coordinator, heat_pump, host, "WatBoxTemSet", "Shower Water Temperature", 30, 60),
+        GreeHeatPumpTemperature(coordinator,
+                                heat_pump,
+                                host,
+                                "CoWatOutTemSet",
+                                "Cold Water Temperature", 5, 30),
+        GreeHeatPumpTemperature(coordinator,
+                                heat_pump,
+                                host,
+                                "HeWatOutTemSet",
+                                "Hot Water Temperature", 30, 60),
+        GreeHeatPumpTemperature(coordinator,
+                                heat_pump,
+                                host,
+                                "WatBoxTemSet",
+                                "Shower Water Temperature", 30, 60),
     ]
-    
+
     async_add_entities(entities)
 
 
@@ -77,7 +89,7 @@ class GreeHeatPumpTemperature(CoordinatorEntity, NumberEntity):
             "HeWatOutTemSet": "hot", 
             "WatBoxTemSet": "shower"
         }
-        
+
         temp_type = temp_type_mapping.get(self._param_key)
         if temp_type:
             success = await self._heat_pump.async_set_temperature(temp_type, int(value))
