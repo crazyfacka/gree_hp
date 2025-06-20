@@ -13,7 +13,6 @@ from .const import DEFAULT_PORT, AES_KEY, BLOCK_SIZE
 
 _LOGGER = logging.getLogger(__name__)
 
-
 class GreeHeatPump:
     """Handle communication with Gree Heat Pump."""
 

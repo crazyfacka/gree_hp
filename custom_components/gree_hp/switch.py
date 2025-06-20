@@ -12,7 +12,6 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -24,7 +23,6 @@ async def async_setup_entry(
     host = config_entry.data[CONF_HOST]
 
     async_add_entities([GreeHeatPumpSwitch(coordinator, heat_pump, host)])
-
 
 class GreeHeatPumpSwitch(CoordinatorEntity, SwitchEntity):
     """Switch for Gree Heat Pump power control."""
