@@ -23,7 +23,7 @@ class GreeHeatPump:
         self._sock: Optional[socket.socket] = None
         self._device_mac: Optional[str] = None
         self._device_key: Optional[str] = None
-        self._device_cipher: Optional[AES] = None
+        self._device_cipher = None
         self._is_bound = False
 
     def __del__(self):
@@ -57,15 +57,15 @@ class GreeHeatPump:
     async def _setup_connection(self) -> None:
         """Setup socket connection and perform discovery/binding."""
         loop = asyncio.get_event_loop()
-        
+
         # Close any existing connection
         self._close_connection()
-        
+
         # Create new socket
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._sock.settimeout(5.0)
         self._sock.bind(('0.0.0.0', DEFAULT_PORT))
-        
+
         try:
             cipher = AES.new(AES_KEY.encode('utf-8'), AES.MODE_ECB)
 
@@ -89,9 +89,10 @@ class GreeHeatPump:
             self._device_key = pack['key']
             self._device_cipher = AES.new(self._device_key.encode('utf-8'), AES.MODE_ECB)
             self._is_bound = True
-            
-            _LOGGER.debug("Successfully established connection and binding to device %s", self._device_mac)
-            
+
+            _LOGGER.debug("Successfully established connection and binding to device %s",
+                          self._device_mac)
+
         except Exception as e:
             _LOGGER.error("Failed to setup connection: %s", e)
             self._close_connection()
@@ -143,7 +144,10 @@ class GreeHeatPump:
                 return pack.get('dat', {})
 
             except Exception as e: # pylint: disable=broad-except
-                _LOGGER.error("Failed to get status (attempt %d/%d): %s", attempt + 1, max_retries, e)
+                _LOGGER.error("Failed to get status (attempt %d/%d): %s",
+                              attempt + 1,
+                              max_retries, e)
+
                 self._close_connection()
                 if attempt == max_retries - 1:
                     return None
@@ -197,7 +201,12 @@ class GreeHeatPump:
                 return True
 
             except Exception as e: # pylint: disable=broad-except
-                _LOGGER.error("Failed to send command %s=%s (attempt %d/%d): %s", param, value, attempt + 1, max_retries, e)
+                _LOGGER.error("Failed to send command %s=%s (attempt %d/%d): %s",
+                              param,
+                              value,
+                              attempt + 1,
+                              max_retries, e)
+
                 self._close_connection()
                 if attempt == max_retries - 1:
                     return False
