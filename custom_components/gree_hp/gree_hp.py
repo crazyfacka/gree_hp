@@ -20,6 +20,82 @@ class GreeHeatPump:
         """Initialize the heat pump connection."""
         self._host = host
         self._data: Dict[str, Any] = {}
+        self._sock: Optional[socket.socket] = None
+        self._device_mac: Optional[str] = None
+        self._device_key: Optional[str] = None
+        self._device_cipher: Optional[AES] = None
+        self._is_bound = False
+
+    def __del__(self):
+        """Clean up socket on destruction."""
+        self._close_connection()
+
+    def _close_connection(self):
+        """Close socket connection and reset state."""
+        if self._sock:
+            try:
+                self._sock.close()
+            except Exception: # pylint: disable=broad-except
+                pass
+            self._sock = None
+        self._device_mac = None
+        self._device_key = None
+        self._device_cipher = None
+        self._is_bound = False
+
+    async def _ensure_connection(self) -> bool:
+        """Ensure we have a valid connection and binding."""
+        try:
+            if not self._is_bound:
+                await self._setup_connection()
+            return self._is_bound
+        except Exception as e: # pylint: disable=broad-except
+            _LOGGER.error("Failed to ensure connection: %s", e)
+            self._close_connection()
+            return False
+
+    async def _setup_connection(self) -> None:
+        """Setup socket connection and perform discovery/binding."""
+        loop = asyncio.get_event_loop()
+        
+        # Close any existing connection
+        self._close_connection()
+        
+        # Create new socket
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._sock.settimeout(5.0)
+        self._sock.bind(('0.0.0.0', DEFAULT_PORT))
+        
+        try:
+            cipher = AES.new(AES_KEY.encode('utf-8'), AES.MODE_ECB)
+
+            # Step 1: Discovery
+            find_msg = {'t': 'scan'}
+            await loop.run_in_executor(None, self._send_msg, self._sock, find_msg)
+            response = await loop.run_in_executor(None, self._receive_msg, self._sock)
+            pack = self._parse_msg(response['pack'], cipher)
+            self._device_mac = pack['mac']
+
+            # Step 2: Binding
+            bind_pack = {'t': 'bind', 'uid': 0, 'mac': self._device_mac}
+            bind_msg = {
+                'cid': 'app', 'i': 1, 't': 'pack', 'uid': 0,
+                'tcid': self._device_mac,
+                'pack': self._enc_msg(bind_pack, cipher)
+            }
+            await loop.run_in_executor(None, self._send_msg, self._sock, bind_msg)
+            response = await loop.run_in_executor(None, self._receive_msg, self._sock)
+            pack = self._parse_msg(response['pack'], cipher)
+            self._device_key = pack['key']
+            self._device_cipher = AES.new(self._device_key.encode('utf-8'), AES.MODE_ECB)
+            self._is_bound = True
+            
+            _LOGGER.debug("Successfully established connection and binding to device %s", self._device_mac)
+            
+        except Exception as e:
+            _LOGGER.error("Failed to setup connection: %s", e)
+            self._close_connection()
+            raise
 
     async def async_update(self) -> Dict[str, Any]:
         """Update data from heat pump."""
@@ -33,49 +109,27 @@ class GreeHeatPump:
 
     async def _get_status(self) -> Optional[Dict[str, Any]]:
         """Get current status from heat pump."""
-        try:
-            loop = asyncio.get_event_loop()
-
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.settimeout(5.0)
-            sock.bind(('0.0.0.0', DEFAULT_PORT))
-
+        max_retries = 2
+        for attempt in range(max_retries):
             try:
-                cipher = AES.new(AES_KEY.encode('utf-8'), AES.MODE_ECB)
+                if not await self._ensure_connection():
+                    continue
 
-                # Step 1: Discovery
-                find_msg = {'t': 'scan'}
-                await loop.run_in_executor(None, self._send_msg, sock, find_msg)
-                response = await loop.run_in_executor(None, self._receive_msg, sock)
-                pack = self._parse_msg(response['pack'], cipher)
-                device_mac = pack['mac']
+                loop = asyncio.get_event_loop()
 
-                # Step 2: Binding
-                bind_pack = {'t': 'bind', 'uid': 0, 'mac': device_mac}
-                bind_msg = {
-                    'cid': 'app', 'i': 1, 't': 'pack', 'uid': 0,
-                    'tcid': device_mac,
-                    'pack': self._enc_msg(bind_pack, cipher)
-                }
-                await loop.run_in_executor(None, self._send_msg, sock, bind_msg)
-                response = await loop.run_in_executor(None, self._receive_msg, sock)
-                pack = self._parse_msg(response['pack'], cipher)
-                device_key = pack['key']
-                device_cipher = AES.new(device_key.encode('utf-8'), AES.MODE_ECB)
-
-                # Step 3: Get status
+                # Get status using cached connection
                 status_pack = {
-                    'mac': device_mac, 't': 'status',
+                    'mac': self._device_mac, 't': 'status',
                     'cols': ['Pow', 'Mod', 'CoWatOutTemSet', 'HeWatOutTemSet', 'WatBoxTemSet']
                 }
                 status_msg = {
                     'cid': 'app', 'i': 0, 't': 'pack', 'uid': 0,
-                    'tcid': device_mac,
-                    'pack': self._enc_msg(status_pack, device_cipher)
+                    'tcid': self._device_mac,
+                    'pack': self._enc_msg(status_pack, self._device_cipher)
                 }
-                await loop.run_in_executor(None, self._send_msg, sock, status_msg)
-                response = await loop.run_in_executor(None, self._receive_msg, sock)
-                pack = self._parse_msg(response['pack'], device_cipher)
+                await loop.run_in_executor(None, self._send_msg, self._sock, status_msg)
+                response = await loop.run_in_executor(None, self._receive_msg, self._sock)
+                pack = self._parse_msg(response['pack'], self._device_cipher)
 
                 # Convert list response to dict
                 if isinstance(pack.get('dat'), list):
@@ -88,12 +142,11 @@ class GreeHeatPump:
 
                 return pack.get('dat', {})
 
-            finally:
-                sock.close()
-
-        except Exception as e: # pylint: disable=broad-except
-            _LOGGER.error("Failed to get status: %s", e)
-            return None
+            except Exception as e: # pylint: disable=broad-except
+                _LOGGER.error("Failed to get status (attempt %d/%d): %s", attempt + 1, max_retries, e)
+                self._close_connection()
+                if attempt == max_retries - 1:
+                    return None
 
     async def async_set_power(self, power_on: bool) -> bool:
         """Set power state."""
@@ -119,58 +172,35 @@ class GreeHeatPump:
 
     async def _send_command(self, param: str, value: int) -> bool:
         """Send command to heat pump."""
-        try:
-            loop = asyncio.get_event_loop()
-
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.settimeout(5.0)
-            sock.bind(('0.0.0.0', DEFAULT_PORT))
-
+        max_retries = 2
+        for attempt in range(max_retries):
             try:
-                cipher = AES.new(AES_KEY.encode('utf-8'), AES.MODE_ECB)
+                if not await self._ensure_connection():
+                    continue
 
-                # Step 1: Discovery
-                find_msg = {'t': 'scan'}
-                await loop.run_in_executor(None, self._send_msg, sock, find_msg)
-                response = await loop.run_in_executor(None, self._receive_msg, sock)
-                pack = self._parse_msg(response['pack'], cipher)
-                device_mac = pack['mac']
+                loop = asyncio.get_event_loop()
 
-                # Step 2: Binding
-                bind_pack = {'t': 'bind', 'uid': 0, 'mac': device_mac}
-                bind_msg = {
-                    'cid': 'app', 'i': 1, 't': 'pack', 'uid': 0,
-                    'tcid': device_mac,
-                    'pack': self._enc_msg(bind_pack, cipher)
-                }
-                await loop.run_in_executor(None, self._send_msg, sock, bind_msg)
-                response = await loop.run_in_executor(None, self._receive_msg, sock)
-                pack = self._parse_msg(response['pack'], cipher)
-                device_key = pack['key']
-                device_cipher = AES.new(device_key.encode('utf-8'), AES.MODE_ECB)
-
-                # Step 3: Send command
+                # Send command using cached connection
                 cmd_pack = {
-                    'mac': device_mac, 't': 'cmd',
+                    'mac': self._device_mac, 't': 'cmd',
                     'opt': [param], 'p': [value]
                 }
                 cmd_msg = {
                     'cid': 'app', 'i': 0, 't': 'pack', 'uid': 0,
-                    'tcid': device_mac,
-                    'pack': self._enc_msg(cmd_pack, device_cipher)
+                    'tcid': self._device_mac,
+                    'pack': self._enc_msg(cmd_pack, self._device_cipher)
                 }
-                await loop.run_in_executor(None, self._send_msg, sock, cmd_msg)
-                response = await loop.run_in_executor(None, self._receive_msg, sock)
+                await loop.run_in_executor(None, self._send_msg, self._sock, cmd_msg)
+                response = await loop.run_in_executor(None, self._receive_msg, self._sock)
 
                 _LOGGER.debug("Command %s=%s sent successfully", param, value)
                 return True
 
-            finally:
-                sock.close()
-
-        except Exception as e: # pylint: disable=broad-except
-            _LOGGER.error("Failed to send command %s=%s: %s", param, value, e)
-            return False
+            except Exception as e: # pylint: disable=broad-except
+                _LOGGER.error("Failed to send command %s=%s (attempt %d/%d): %s", param, value, attempt + 1, max_retries, e)
+                self._close_connection()
+                if attempt == max_retries - 1:
+                    return False
 
     def _parse_msg(self, msg: str, cipher) -> Dict[str, Any]:
         """Parse encrypted message from device."""
