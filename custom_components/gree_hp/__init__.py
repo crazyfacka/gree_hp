@@ -12,7 +12,7 @@ from .gree_hp import GreeHeatPump
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SWITCH, Platform.NUMBER, Platform.SELECT]
+PLATFORMS = [Platform.SWITCH, Platform.NUMBER, Platform.SELECT, Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Gree Heat Pump from a config entry."""
@@ -27,7 +27,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER,
         name=f"gree_hp_{host}",
         update_method=heat_pump.async_update,
-        update_interval=timedelta(seconds=5),
+        update_interval=timedelta(seconds=10),
     )
 
     # Fetch initial data
