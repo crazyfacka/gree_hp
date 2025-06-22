@@ -27,7 +27,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER,
         name=f"gree_hp_{host}",
         update_method=heat_pump.async_update,
-        update_interval=timedelta(seconds=5),
+        update_interval=timedelta(seconds=10),
     )
 
     # Fetch initial data
