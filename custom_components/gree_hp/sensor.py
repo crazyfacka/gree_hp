@@ -1,6 +1,6 @@
 """Support for Gree Heat Pump sensors."""
 import logging
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -29,7 +29,7 @@ SENSOR_DESCRIPTIONS = [
     ),
     SensorEntityDescription(
         key="water_out_pe",
-        name="Water Out PE", 
+        name="Water Out PE",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
@@ -52,7 +52,6 @@ SENSOR_FIELD_MAPPING = {
     "water_tank": ("WatBoxTemHi", "WatBoxTemLo"),
 }
 
-
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -60,13 +59,12 @@ async def async_setup_entry(
 ) -> None:
     """Set up Gree Heat Pump sensors."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
-    
+
     entities = []
     for description in SENSOR_DESCRIPTIONS:
         entities.append(GreeHeatPumpSensor(coordinator, description))
-    
-    async_add_entities(entities)
 
+    async_add_entities(entities)
 
 class GreeHeatPumpSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Gree Heat Pump sensor."""
@@ -83,18 +81,18 @@ class GreeHeatPumpSensor(CoordinatorEntity, SensorEntity):
         """Return the state of the sensor."""
         if not self.coordinator.data:
             return None
-            
+
         sensor_key = self.entity_description.key
         if sensor_key not in SENSOR_FIELD_MAPPING:
             return None
-            
+
         hi_field, lo_field = SENSOR_FIELD_MAPPING[sensor_key]
         hi_value = self.coordinator.data.get(hi_field)
         lo_value = self.coordinator.data.get(lo_field)
-        
+
         if hi_value is None or lo_value is None:
             return None
-            
+
         try:
             # Convert using formula (Hi-100)+Lo*0.1
             temperature = (float(hi_value) - 100.0) + (float(lo_value) * 0.1)
