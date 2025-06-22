@@ -121,7 +121,9 @@ class GreeHeatPump:
                 # Get status using cached connection
                 status_pack = {
                     'mac': self._device_mac, 't': 'status',
-                    'cols': ['Pow', 'Mod', 'CoWatOutTemSet', 'HeWatOutTemSet', 'WatBoxTemSet']
+                    'cols': ['Pow', 'Mod', 'CoWatOutTemSet', 'HeWatOutTemSet', 'WatBoxTemSet',
+                            'AllInWatTemHi', 'AllInWatTemLo', 'AllOutWatTemHi', 'AllOutWatTemLo',
+                            'WatBoxTemHi', 'WatBoxTemLo']
                 }
                 status_msg = {
                     'cid': 'app', 'i': 0, 't': 'pack', 'uid': 0,
@@ -134,7 +136,9 @@ class GreeHeatPump:
 
                 # Convert list response to dict
                 if isinstance(pack.get('dat'), list):
-                    cols = ['Pow', 'Mod', 'CoWatOutTemSet', 'HeWatOutTemSet', 'WatBoxTemSet']
+                    cols = ['Pow', 'Mod', 'CoWatOutTemSet', 'HeWatOutTemSet', 'WatBoxTemSet',
+                           'AllInWatTemHi', 'AllInWatTemLo', 'AllOutWatTemHi', 'AllOutWatTemLo',
+                           'WatBoxTemHi', 'WatBoxTemLo']
                     dat_dict = {}
                     for i, col in enumerate(cols):
                         if i < len(pack['dat']):

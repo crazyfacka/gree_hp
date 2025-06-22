@@ -12,7 +12,7 @@ from .gree_hp import GreeHeatPump
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SWITCH, Platform.NUMBER, Platform.SELECT]
+PLATFORMS = [Platform.SWITCH, Platform.NUMBER, Platform.SELECT, Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Gree Heat Pump from a config entry."""
