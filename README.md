@@ -24,16 +24,17 @@ The integration provides the following entities:
 
 ### Climate Entity
 - **Power Control**: Turn the heat pump on/off
-- **Mode Selection**: Cool, Heat, Hot Water, Cool + Hot Water, Heat + Hot Water
-- **Temperature Control**: Set target temperatures
+- **Mode Selection**: Cool, Heat, Shower Water, Cool + Shower Water, Heat + Shower Water
 
-### Temperature Sensors
+### Temperature Control
 - **Cold Water Temperature**: Current cold water temperature setting
 - **Hot Water Temperature**: Current hot water temperature setting  
 - **Shower Water Temperature**: Current shower water temperature setting
 
-### Power Switch
-- **Power Switch**: Alternative way to control heat pump power state
+### Temperature Sensors
+- **Water tank**: Current temperature of the water inside the water tank
+- **Water In PE**: Temperature of the water entering the Heat Pump circuit
+- **Water Out PE**: Temperature of the water leaving the Heat Pump circuit
 
 ## Configuration
 
@@ -44,7 +45,7 @@ All other protocol parameters (port, encryption keys) are hardcoded based on the
 
 ## Data Updates
 
-The integration polls the heat pump every 3 seconds to retrieve the current status, ensuring the Home Assistant entities stay synchronized with any manual changes made on the heat pump itself.
+The integration polls the heat pump every 10 seconds to retrieve the current status, ensuring the Home Assistant entities stay synchronized with any manual changes made on the heat pump itself.
 
 ## Technical Details
 
@@ -56,9 +57,9 @@ The integration polls the heat pump every 3 seconds to retrieve the current stat
 ## Troubleshooting
 
 1. **Connection Issues**: Ensure the heat pump IP address is correct and the device is on the same network
-2. **Entity Updates**: The integration updates every 3 seconds; manual changes may take a few seconds to reflect
+2. **Entity Updates**: The integration updates every 10 seconds; manual changes may take a few seconds to reflect
 3. **Logs**: Check Home Assistant logs for detailed error messages if the integration fails to connect
 
 ## Development
 
-This integration is based on reverse-engineered Gree heat pump protocol communication patterns. The implementation follows Home Assistant integration best practices with proper async handling and coordinator-based updates.
+This integration is based on reverse-engineered, lots of searching and looking into similar implementations of the Gree protocol communication patterns.
