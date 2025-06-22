@@ -9,7 +9,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import CONF_HOST, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -59,22 +59,34 @@ async def async_setup_entry(
 ) -> None:
     """Set up Gree Heat Pump sensors."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
+    host = config_entry.data[CONF_HOST]
 
     entities = []
     for description in SENSOR_DESCRIPTIONS:
-        entities.append(GreeHeatPumpSensor(coordinator, description))
+        entities.append(GreeHeatPumpSensor(coordinator, description, host))
 
     async_add_entities(entities)
 
 class GreeHeatPumpSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Gree Heat Pump sensor."""
 
-    def __init__(self, coordinator, description: SensorEntityDescription):
+    def __init__(self, coordinator, description: SensorEntityDescription, host: str):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_unique_id = f"{DOMAIN}_{description.key}"
-        self._attr_name = description.name
+        self._host = host
+        self._attr_unique_id = f"gree_hp_{host}_{description.key}"
+        self._attr_name = f"Gree Heat Pump {host} {description.name}"
+
+    @property
+    def device_info(self):
+        """Return device info."""
+        return {
+            "identifiers": {(DOMAIN, self._host)},
+            "name": f"Gree Heat Pump {self._host}",
+            "manufacturer": "Gree",
+            "model": "Heat Pump",
+        }
 
     @property
     def native_value(self) -> Optional[float]:
