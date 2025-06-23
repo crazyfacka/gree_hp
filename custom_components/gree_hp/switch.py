@@ -68,7 +68,7 @@ class GreeHeatPumpSwitch(CoordinatorEntity, SwitchEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        if self._heat_pump._is_rebinding and self._heat_pump._retry_count < self._heat_pump._max_retries:
+        if self._heat_pump.is_rebinding and self._heat_pump.retry_count < self._heat_pump.max_retries:
             return True
         else:
             return self.coordinator.last_update_success

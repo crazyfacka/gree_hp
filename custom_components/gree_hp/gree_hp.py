@@ -303,3 +303,18 @@ class GreeHeatPump:
     def data(self) -> Dict[str, Any]:
         """Get current data."""
         return self._data
+
+    @property
+    def is_rebinding(self) -> bool:
+        """Return True if currently rebinding."""
+        return self._is_rebinding
+
+    @property
+    def retry_count(self) -> int:
+        """Return current retry count."""
+        return self._retry_count
+
+    @property
+    def max_retries(self) -> int:
+        """Return maximum retry count."""
+        return self._max_retries
