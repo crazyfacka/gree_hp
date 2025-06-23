@@ -25,6 +25,10 @@ class GreeHeatPump:
         self._device_key: Optional[str] = None
         self._device_cipher = None
         self._is_bound = False
+        self._last_successful_data: Dict[str, Any] = {}
+        self._retry_count = 0
+        self._max_retries = 3
+        self._is_rebinding = False
 
     def __del__(self):
         """Clean up socket on destruction."""
@@ -99,21 +103,39 @@ class GreeHeatPump:
             raise
 
     async def async_update(self) -> Dict[str, Any]:
-        """Update data from heat pump."""
+        """Update data from heat pump with graceful rebinding."""
         try:
             data = await self._get_status()
-            self._data = data or {}
-            return self._data
+            if data:
+                self._data = data
+                self._last_successful_data = data.copy()
+                self._retry_count = 0
+                self._is_rebinding = False
+                return self._data
+            else:
+                if self._is_rebinding and self._retry_count < self._max_retries:
+                    _LOGGER.warning("Rebinding in progress, using cached data")
+                    return self._last_successful_data
+                else:
+                    self._data = {}
+                    return self._data
         except Exception as e: # pylint: disable=broad-except
             _LOGGER.error("Failed to update heat pump data: %s", e)
+            if self._is_rebinding and self._retry_count < self._max_retries:
+                return self._last_successful_data
             return self._data
 
     async def _get_status(self) -> Optional[Dict[str, Any]]:
-        """Get current status from heat pump."""
-        max_retries = 2
-        for attempt in range(max_retries):
+        """Get current status with graceful rebinding."""
+        for attempt in range(self._max_retries):
             try:
                 if not await self._ensure_connection():
+                    self._is_rebinding = True
+                    self._retry_count = attempt + 1
+                    if attempt < self._max_retries - 1:
+                        backoff_time = min(2 ** attempt, 10)
+                        _LOGGER.debug("Waiting %d seconds before retry", backoff_time)
+                        await asyncio.sleep(backoff_time)
                     continue
 
                 loop = asyncio.get_event_loop()
@@ -143,18 +165,31 @@ class GreeHeatPump:
                     for i, col in enumerate(cols):
                         if i < len(pack['dat']):
                             dat_dict[col] = pack['dat'][i]
+                    self._is_rebinding = False
+                    self._retry_count = 0
                     return dat_dict
 
+                self._is_rebinding = False
+                self._retry_count = 0
                 return pack.get('dat', {})
 
             except Exception as e: # pylint: disable=broad-except
                 _LOGGER.error("Failed to get status (attempt %d/%d): %s",
                               attempt + 1,
-                              max_retries, e)
+                              self._max_retries, e)
+                self._is_rebinding = True
+                self._retry_count = attempt + 1
 
-                self._close_connection()
-                if attempt == max_retries - 1:
+                if attempt == self._max_retries - 1:
+                    self._close_connection()
                     return None
+                else:
+                    self._partial_reset()
+                    backoff_time = min(2 ** attempt, 10)
+                    _LOGGER.debug("Waiting %d seconds before retry", backoff_time)
+                    await asyncio.sleep(backoff_time)
+
+        return None
 
     async def async_set_power(self, power_on: bool) -> bool:
         """Set power state."""
@@ -179,11 +214,16 @@ class GreeHeatPump:
         return await self._send_command('Mod', mode)
 
     async def _send_command(self, param: str, value: int) -> bool:
-        """Send command to heat pump."""
-        max_retries = 2
-        for attempt in range(max_retries):
+        """Send command to heat pump with graceful rebinding."""
+        for attempt in range(self._max_retries):
             try:
                 if not await self._ensure_connection():
+                    self._is_rebinding = True
+                    self._retry_count = attempt + 1
+                    if attempt < self._max_retries - 1:
+                        backoff_time = min(2 ** attempt, 10)
+                        _LOGGER.debug("Waiting %d seconds before retry", backoff_time)
+                        await asyncio.sleep(backoff_time)
                     continue
 
                 loop = asyncio.get_event_loop()
@@ -202,6 +242,8 @@ class GreeHeatPump:
                 response = await loop.run_in_executor(None, self._receive_msg, self._sock)
 
                 _LOGGER.debug("Command %s=%s sent successfully", param, value)
+                self._is_rebinding = False
+                self._retry_count = 0
                 return True
 
             except Exception as e: # pylint: disable=broad-except
@@ -209,11 +251,20 @@ class GreeHeatPump:
                               param,
                               value,
                               attempt + 1,
-                              max_retries, e)
+                              self._max_retries, e)
+                self._is_rebinding = True
+                self._retry_count = attempt + 1
 
-                self._close_connection()
-                if attempt == max_retries - 1:
+                if attempt == self._max_retries - 1:
+                    self._close_connection()
                     return False
+                else:
+                    self._partial_reset()
+                    backoff_time = min(2 ** attempt, 10)
+                    _LOGGER.debug("Waiting %d seconds before retry", backoff_time)
+                    await asyncio.sleep(backoff_time)
+
+        return False
 
     def _parse_msg(self, msg: str, cipher) -> Dict[str, Any]:
         """Parse encrypted message from device."""
@@ -237,7 +288,33 @@ class GreeHeatPump:
         data = sock.recvfrom(1024)[0]
         return json.loads(data)
 
+    def _partial_reset(self):
+        """Reset connection state but preserve data for rebinding."""
+        if self._sock:
+            try:
+                self._sock.close()
+            except Exception: # pylint: disable=broad-except
+                pass
+            self._sock = None
+        self._device_cipher = None
+        self._is_bound = False
+
     @property
     def data(self) -> Dict[str, Any]:
         """Get current data."""
         return self._data
+
+    @property
+    def is_rebinding(self) -> bool:
+        """Return True if currently rebinding."""
+        return self._is_rebinding
+
+    @property
+    def retry_count(self) -> int:
+        """Return current retry count."""
+        return self._retry_count
+
+    @property
+    def max_retries(self) -> int:
+        """Return maximum retry count."""
+        return self._max_retries
