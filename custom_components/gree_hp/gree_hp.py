@@ -241,7 +241,21 @@ class GreeHeatPump:
                 await loop.run_in_executor(None, self._send_msg, self._sock, cmd_msg)
                 response = await loop.run_in_executor(None, self._receive_msg, self._sock)
 
-                _LOGGER.debug("Command %s=%s sent successfully", param, value)
+                # Parse response and update data immediately
+                pack = self._parse_msg(response['pack'], self._device_cipher)
+                if pack.get('t') == 'res' and pack.get('r') == 200:
+                    # Update data with actual values returned by heat pump
+                    if 'opt' in pack and 'val' in pack:
+                        for i, opt in enumerate(pack['opt']):
+                            if i < len(pack['val']):
+                                self._data[opt] = pack['val'][i]
+                                # Also update last successful data cache
+                                self._last_successful_data[opt] = pack['val'][i]
+                                _LOGGER.debug("Updated %s to %s from command response", opt, pack['val'][i])
+                    _LOGGER.debug("Command %s=%s sent successfully, response: %s", param, value, pack)
+                else:
+                    _LOGGER.warning("Unexpected response format: %s", pack)
+
                 self._is_rebinding = False
                 self._retry_count = 0
                 return True
