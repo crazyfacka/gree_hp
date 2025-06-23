@@ -116,4 +116,9 @@ class GreeHeatPumpSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.last_update_success and self.native_value is not None
+        heat_pump = self.hass.data[DOMAIN][self.coordinator.config_entry.entry_id]["heat_pump"]
+        
+        if heat_pump._is_rebinding and heat_pump._retry_count < heat_pump._max_retries:
+            return self.native_value is not None
+        else:
+            return self.coordinator.last_update_success and self.native_value is not None

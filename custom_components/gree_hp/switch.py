@@ -64,3 +64,11 @@ class GreeHeatPumpSwitch(CoordinatorEntity, SwitchEntity):
         success = await self._heat_pump.async_set_power(False)
         if success:
             await self.coordinator.async_request_refresh()
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        if self._heat_pump._is_rebinding and self._heat_pump._retry_count < self._heat_pump._max_retries:
+            return True
+        else:
+            return self.coordinator.last_update_success
