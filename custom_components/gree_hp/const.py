@@ -5,6 +5,10 @@ DEFAULT_PORT = 7000
 AES_KEY = "a3K8Bx%2r8Y7#xDh"
 BLOCK_SIZE = 16
 
+# Configuration constants
+CONF_POLLING_INTERVAL = "polling_interval"
+DEFAULT_POLLING_INTERVAL = 10
+
 # Mode mapping
 MODE_MAPPING = {
     1: "Heat",
