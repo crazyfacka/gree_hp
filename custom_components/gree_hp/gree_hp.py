@@ -243,7 +243,7 @@ class GreeHeatPump:
 
                 # Parse response and update data immediately
                 pack = self._parse_msg(response['pack'], self._device_cipher)
-                if pack.get('t') == 'res' and pack.get('r') == 200:
+                if pack.get('t') in ('res', 'dat') and pack.get('r') == 200:
                     # Update data with actual values returned by heat pump
                     if 'opt' in pack and 'val' in pack:
                         for i, opt in enumerate(pack['opt']):
