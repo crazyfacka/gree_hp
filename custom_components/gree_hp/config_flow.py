@@ -54,7 +54,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             polling_interval = user_input.get(CONF_POLLING_INTERVAL, DEFAULT_POLLING_INTERVAL)
             if not isinstance(polling_interval, int) or polling_interval < 1 or polling_interval > 10:
                 polling_interval = DEFAULT_POLLING_INTERVAL
-            
+
             return self.async_create_entry(
                 title="",
                 data={CONF_POLLING_INTERVAL: polling_interval}

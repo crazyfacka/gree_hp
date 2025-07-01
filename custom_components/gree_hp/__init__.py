@@ -17,7 +17,7 @@ PLATFORMS = [Platform.SWITCH, Platform.NUMBER, Platform.SELECT, Platform.SENSOR]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Gree Heat Pump from a config entry."""
     host = entry.data[CONF_HOST]
-    
+
     # Get polling interval from options, defaulting to 10 seconds
     polling_interval = entry.options.get(CONF_POLLING_INTERVAL, DEFAULT_POLLING_INTERVAL)
 
