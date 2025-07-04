@@ -9,5 +9,16 @@
         }
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Gree Heat Pump Options",
+        "description": "Configure polling interval for data updates",
+        "data": {
+          "polling_interval": "Polling Interval (seconds)"
+        }
+      }
+    }
   }
 }
