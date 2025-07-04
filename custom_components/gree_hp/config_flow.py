@@ -22,9 +22,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry):
         """Create the options flow."""
-        return OptionsFlowHandler(config_entry)
+        return OptionsFlowHandler()
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
@@ -43,9 +43,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Gree Heat Pump."""
 
-    def __init__(self, config_entry):
-        """Initialize options flow."""
-        self.config_entry = config_entry
+    @property
+    def config_entry(self):
+        """Config entry property"""
+        return self.hass.config_entries.async_get_entry(self.handler)
 
     async def async_step_init(self, user_input=None):
         """Handle options flow."""
